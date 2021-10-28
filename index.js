@@ -1,5 +1,5 @@
 const express = require('express')
-const port = 3000
+const port = 80
 
 const game = require('./routes/game.js');
 const team = require('./routes/team.js');
