@@ -1,5 +1,6 @@
 const express = require('express')
-const port = 80
+const PORT = process.env.PORT || 3000;
+
 
 const game = require('./routes/game.js');
 const team = require('./routes/team.js');
@@ -16,6 +17,7 @@ app.get('/', function (req, res) {
   res.send('Era Game Server');
 });
 
-app.listen(port, () => {
-  console.log(`Example app listening at http://localhost:${port}`)
+app.listen(PORT, err => {
+  if(err) throw err;
+  console.log("Server running");
 })
