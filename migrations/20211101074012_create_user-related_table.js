@@ -4,6 +4,7 @@ exports.up = function(knex) {
         .createTable('organizations', function (table) {
             table.increments('id');
             table.string('name', 255).notNullable();
+            table.timestamps();
         })
         .createTable('departments', function (table) {
             table.increments('id');
@@ -13,11 +14,13 @@ exports.up = function(knex) {
                 .onDelete('SET NULL')
                 .index();
             table.string('name', 255).notNullable();
+            table.timestamps();
         })
         .createTable('skins', function (table){
             table.increments('id');
             table.string('name').notNullable();
             !table.integer('price').notNullable();
+            table.timestamps();
         })
         .createTable('users', function (table) {
             table.increments('id');
@@ -36,6 +39,7 @@ exports.up = function(knex) {
             table.string('email', 255).notNullable();
             table.string('password', 255).notNullable();
             table.enum('status', ['activated', 'deactivated', 'blocked']).defaultTo('activated');
+            table.timestamps();
         })
 };
 
