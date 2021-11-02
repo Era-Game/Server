@@ -13,9 +13,10 @@ exports.up = function(knex) {
               .inTable('games')
               .onDelete('SET NULL')
               .index();
-          table.enum('status', ['created', 'matching', 'ready']).defaultTo('created');
+          table.enum('status', ['created', 'matching', 'ready', 'playing','dismissed']).defaultTo('created');
           table.float('accuDistance');
           table.integer('accuStep');
+          table.timestamps();
       })
       .createTable('team_user_list', function(table) {
           table.increments('id').primary();
@@ -42,6 +43,7 @@ exports.up = function(knex) {
           table.float('currVelocity');
           table.float('accelVelocity');
           table.float('accuDistance');
+          table.timestamps();
       })
       .alterTable(
           'teams',
