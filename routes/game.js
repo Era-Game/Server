@@ -1,7 +1,31 @@
-const database = require('../utils/firebase.js');
+const db = require('../db/connection')
 const express = require('express');
 
 let route_game = express.Router();
+
+route_game.get('/test', function(req, res){
+    // db.select().table('game').orderBy("StartDate", "desc").then((rows) => {
+    //     res.json({ code: 200, data: { items: rows, total: rows.length } })
+    // })
+
+    const body = {}
+    body.id = 1
+    body.name = "hello"
+    body.status = 1
+
+    db.insert(body).into('game').returning(['id', 'name', 'status']).then((rows) => {
+        res.json({
+            code: 200,
+            GameID: rows[0].id,
+            data: {
+                title: 'Success',
+                message: 'Created Successfully.',
+                type: 'success',
+                duration: '2000'
+            }
+        })
+    })
+})
 
 route_game.get('/create', function(request, response){
     let _teamcode = request.query.TEAMCODE;
