@@ -35,8 +35,9 @@ exports.up = function(knex) {
                 .onDelete('CASCADE')
                 .index();
             table.string('profileImgUrl', 255);
-            table.string('name', 64);
-            table.string('email', 255).notNullable();
+            table.string('name', 32);
+            table.string('username', 32).unique().notNullable();
+            table.string('email', 255).unique().notNullable();
             table.string('password', 255).notNullable();
             table.enum('status', ['activated', 'deactivated', 'blocked']).defaultTo('activated');
             table.timestamps();

@@ -2,7 +2,7 @@ const bcrypt = require('bcrypt');
 
 const saltRounds = 10;
 
-const bcryptPassword = function (plaintextPassword) {
+const bcryptPassword = (plaintextPassword) => {
     return new Promise(function(resolve, reject)
     {
         bcrypt.hash(plaintextPassword, saltRounds).then( function (result) {
@@ -18,13 +18,12 @@ const bcryptPassword = function (plaintextPassword) {
     });
 }
 
-const verifyPassword = (userPassword, hashedPassword) => {
-    bcrypt.compare(userPassword, hashedPassword).then(function(result){
-        return result
-    }).catch(function(error){
-        console.error(error)
-    })
-    return false
+const verifyPassword = async (userPassword, hashedPassword) => {
+    try {
+        return await bcrypt.compare(userPassword, hashedPassword);
+    } catch (err){
+        console.log(err)
+    }
 }
 
 module.exports = {

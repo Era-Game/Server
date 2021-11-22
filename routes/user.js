@@ -6,7 +6,8 @@ const ctrl = require('../controllers/userController');
 let route_user = express.Router();
 
 // create
-route_user.route('/create').post(ctrl.createUser);
+route_user.route('/create').post(ctrl.create)
+route_user.route('/me/:id').get(ctrl.findById)
 
 // ----------------------------- Organization ---------------------------------------------------
 route_user.get('/set_user_organization', function(request, response){
@@ -20,7 +21,7 @@ route_user.get('/set_user_organization', function(request, response){
     database.ref("users/" + _uid).once("value").then((userData) => {
 
         //Check if user uid exists
-        if (userData.exists() == false) {
+        if (userData.exists() === false) {
             response.status(401).send("Your UID is not valid");
         }
 

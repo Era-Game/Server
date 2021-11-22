@@ -1,30 +1,56 @@
 const userService = require('../services/userService');
-const passport = require('../auth/local');
+const authService = require('../services/authService');
+const user_model = require("../models/user");
 
-const handleResponse = (res, code, statusMsg) => {
-    res.status(code).json({ status: statusMsg });
+const create = async (req, res, next) => {
+    // passes correct user and pass
+    console.log("[Controller Start] create user")
+    console.log("request body:" + JSON.stringify(req.body));
+
+    // validate req body
+    const {error} = user_model.validate(req.body)
+
+    // validate success
+    if (! error){
+        try {
+            // create user
+            const user = await userService.create(req, res, next)
+            const user_jwt = authService.generateJWT(user);
+            return res.status(200).json({ status: "create user successfully", access_token: user_jwt});
+        } catch(err) {
+            console.error(err)
+            // check the error type
+            if (err.toString().search("ER_DUP_ENTRY") !== -1){ // mysql error: duplicate field
+                if (err.toString().search("users_username_unique") !== -1) return res.status(500).json({ status: "This username has already been taken." });
+                if (err.toString().search("users_email_unique") !== -1) return res.status(500).json({ status: "This email has already been taken." });
+            } else {
+                res.status(500).json({ status: "An error occurred while creating user." });
+            }
+        } finally {
+            console.log("[Controller End] create user")
+        }
+    } else {
+        res.status(500).json({ status: error.message });
+    }
 };
 
-const createUser = (req, res, next) => {
-    // passes correct user and pass
-    console.log(req.body);
-    return userService
-        .create(req, res, next)
-        .then(() => {
-            passport.authenticate('local', (err, user, info) => {
-                if (err) {
-                    handleResponse(res, 500, 'error');
-                    console.log(info);
-                }
-                if (user) {
-                    handleResponse(res, 200, 'success');
-                    console.log(info);
-                }
-            })(req, res, next);
-        })
-        .catch(next);
+const findById = async (req, res) => {
+    console.log("[Controller Start] findById")
+    console.log("request body:" + JSON.stringify(req.params));
+    if (req.params.id !== undefined){
+        try{
+            const user = await userService.findById(req.params.id)
+            return res.status(200).json(user);
+        } catch(err) {
+            return res.status(404).json({"status": "user not found"})
+        }
+    } else {
+        return res.status(500).json({"status": "please provide user id"})
+    }
+
 };
 
 module.exports = {
-    createUser,
+    create,
+    findById,
 };

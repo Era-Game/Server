@@ -1,26 +1,68 @@
 const db = require("../db/connection");
 const authHelpers = require('../utils/authHelpers');
-const {error} = require("firebase-functions/lib/logger");
 
 const create = function (req) {
     return new Promise(function (resolve, reject) {
-        // get hashed password
+        // hash the password
         authHelpers.bcryptPassword(req.body.password).then( function(hashedPwd){
+            let dt = new Date(Date.now());
+            let ts = dt.getFullYear() + "-" + dt.getMonth() + "-" + dt.getDate()+ " " +
+                dt.getHours() + ":" + dt.getMinutes() + ":" +dt.getSeconds()
+
             // save user into DB
-            const user = db('users')
+            db('users')
                 .insert({
+                    username: req.body.username,
                     email: req.body.email,
                     password: hashedPwd,
+                    created_at: ts,
+                    updated_at: ts
                 })
-                .returning('*')
-
-            resolve(user);
+                .then(function(id){
+                    console.log("inserted user id:" + id)
+                    resolve({"id": id, "username": req.body.username, "email": req.body.email});
+                })
+                .catch(function (err){
+                    reject(Error(err))
+                })
         }).catch(function (err) {
             reject(Error(err))
         })
     })
 }
 
+const findById = function (id) {
+    return new Promise(function (resolve, reject) {
+        db('users')
+            .where('id', id)
+            .first()
+            .then(function(row){
+                console.log("find by user id:" + row.id)
+                resolve(row);
+            })
+            .catch(function (err){
+                reject(Error(err))
+            })
+    })
+}
+
+const findByEmail = function (email) {
+    return new Promise(function (resolve, reject) {
+        db('users')
+            .where('email', email)
+            .first()
+            .then(function(row){
+                console.log("find by user email:" + row.email)
+                resolve(row);
+            })
+            .catch(function (err){
+                reject(Error(err))
+            })
+    })
+}
+
 module.exports = {
-    create
+    create,
+    findById,
+    findByEmail
 }
