@@ -17,7 +17,7 @@ exports.up = function(knex) {
             table.integer('game_mode_id')
                 .unsigned().references('id')
                 .inTable('game_mode')
-                .onDelete('SET NULL')
+                .onDelete('CASCADE')
                 .index();
             table.enum('status', ['created', 'ready', 'ongoing', 'terminated']).defaultTo('created');
             table.timestamps();
@@ -25,6 +25,9 @@ exports.up = function(knex) {
 };
 
 exports.down = function(knex) {
-    return knex.schema
+    return knex.schema.alterTable("games", (table) => {
+        table.dropForeign("game_mode_id");
+    })
         .dropTable("games")
+        .dropTable("game_mode")
 };

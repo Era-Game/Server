@@ -1,8 +1,12 @@
 const database = require('../utils/firebase.js');
-
 const express = require('express');
 
+const ctrl = require('../controllers/userController');
+
 let route_user = express.Router();
+
+// create
+route_user.route('/create').post(ctrl.createUser);
 
 // ----------------------------- Organization ---------------------------------------------------
 route_user.get('/set_user_organization', function(request, response){
