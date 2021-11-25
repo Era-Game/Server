@@ -52,8 +52,12 @@ const findByEmail = function (email) {
             .where('email', email)
             .first()
             .then(function(row){
-                console.log("find by user email:" + row.email)
-                resolve(row);
+                if (row !== undefined){
+                    console.log("find by user email:" + row.email)
+                    resolve(row);
+                } else {
+                    reject(Error("The user isn't existed."))
+                }
             })
             .catch(function (err){
                 reject(Error(err))

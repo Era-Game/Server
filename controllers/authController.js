@@ -6,16 +6,20 @@ const login =  async (req, res) => {
     console.log("[Controller Start] login")
     console.log("request body:" + JSON.stringify(req.body))
 
-    const user = await userService.findByEmail(req.body.email)
+    try{
+        const user = await userService.findByEmail(req.body.email)
+        if (!await authHelpers.verifyPassword(req.body.password, user.password)) {
+            return res.status(403).json({status: "email or password error"});
+        }
 
-    if (!await authHelpers.verifyPassword(req.body.password, user.password)) {
+        const user_jwt = authService.generateJWT(user);
+
+        console.log("[Controller End] login")
+        return res.status(200).json({status: "login successfully", access_token: user_jwt, username: user.username});
+    } catch (err) {
+        console.log(err)
         return res.status(403).json({status: "email or password error"});
     }
-
-    const user_jwt = authService.generateJWT(user);
-
-    console.log("[Controller End] login")
-    return res.status(200).json({status: "login successfully", access_token: user_jwt});
 }
 
 
