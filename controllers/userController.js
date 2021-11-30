@@ -36,10 +36,11 @@ const create = async (req, res, next) => {
 
 const findById = async (req, res) => {
     console.log("[Controller Start] findById")
-    console.log("request payload:" + JSON.stringify(req.locals.payload));
-    if (req.locals.payload.id !== undefined){
+    console.log("request payload:" + res.locals.payload);
+    if (res.locals.payload.username !== undefined){
         try{
-            const user = await userService.findById(req.locals.payload.id)
+            const user = await userService.findById(res.locals.payload.sub)
+            delete user['password']
             return res.status(200).json(user);
         } catch(err) {
             return res.status(404).json({"status": "user not found"})
