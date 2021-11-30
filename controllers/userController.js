@@ -36,10 +36,10 @@ const create = async (req, res, next) => {
 
 const findById = async (req, res) => {
     console.log("[Controller Start] findById")
-    console.log("request body:" + JSON.stringify(req.params));
-    if (req.params.id !== undefined){
+    console.log("request payload:" + JSON.stringify(req.locals.payload));
+    if (req.locals.payload.id !== undefined){
         try{
-            const user = await userService.findById(req.params.id)
+            const user = await userService.findById(req.locals.payload.id)
             return res.status(200).json(user);
         } catch(err) {
             return res.status(404).json({"status": "user not found"})

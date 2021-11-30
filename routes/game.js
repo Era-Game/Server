@@ -3,6 +3,140 @@ const express = require('express');
 
 let route_game = express.Router();
 
+route_game.get('/rejoin', function(request, response){
+
+    let _uid = request.query.UID;
+    let _teamCode = "notfound";
+    let _gameID = "notfound";
+    let _skinID = "";
+    let _petID = "";
+    let _imageURL = "";
+    let user_index = -1;
+    let isInQueue = false;
+
+    //Check if the player exists
+    database.ref("users/" + _uid).once("value").then((userData) => {
+
+        //Check if user uid exists
+        if (userData.exists() == false) {
+            response.status(401).send("Your UID is not valid");
+        }
+
+        //Get the registered teamCode in player's data
+        userData.forEach((data) => {
+            if (data.key === "teamCode") {
+                _teamCode = data.val();
+            }
+
+            if (data.key === "skinID") {
+                _skinID = parseInt(data.val(), 10);
+            }
+
+            if (data.key === "petID") {
+                _petID = parseInt(data.val(), 10);
+            }
+
+            if (data.key === "Profile_Image_URL") {
+                _imageURL = data.val();
+            }
+        });
+
+        // Change user isOnline status and team isOnline status
+        database.ref("users/" + _uid).update({isOnline: true,});
+
+        //Check if teamCode exists
+        if(_teamCode !== "notfound" && _teamCode !== "placeholder"){
+            //Check if team with given teamCode exits
+            database.ref("teams/" + _teamCode).once("value").then((teamData) => {
+
+                //Check if teamcode exists
+                if(teamData.exists() == false) {
+                    response.status(200).send("Lobby");
+                }
+
+                //Check if gameID fields contains a game
+                teamData.forEach((data) => {
+                    if (data.key === "gameId") {
+                        _gameID = data.val();
+                    }
+                });
+
+                database.ref("teams/" + _teamCode + "/memberIDs").once("value").then((members) => {
+
+                    members.forEach((member) => {
+                        if (_uid === member.val()) {
+                            user_index = parseInt(member.key, 10);
+                        }
+                    });
+
+                    database.ref("teams/" + _teamCode + "/isOnlineList").update({
+                        [user_index]: true,
+                    });
+
+                    database.ref("games/" + _gameID + "/gameInfo/startGame").once("value").then((startgame) => {
+
+                        //Check if game is already in game or in queue (exists mean to be in game)
+                        if (startgame.exists() == false) {
+                            isInQueue = true;
+                        }
+
+                        if(_gameID == "notfound" || _gameID == "placeholder" || isInQueue){
+                            //No Game Found, return to the team lobby
+                            response.status(200).send("Team Lobby");
+                        }else{
+                            // before return to the game, assign runner to the player if team is dead
+                            database.ref("games/" + _gameID + "/gameInfo/teamInfo/" + _teamCode).once("value").then((teamInfos) => {
+
+                                teamInfos.forEach((teamInfo) => {
+
+                                    if (teamInfo.key === "teamIsDead") {
+
+                                        let updates = {
+                                            runner: _uid,
+                                            runnerSkinID: _skinID,
+                                            runnerPetID: _petID,
+                                            runnerImageURL: _imageURL,
+                                        };
+
+                                        console.log("rejoin from team is dead");
+
+                                        database.ref("games/" + _gameID + "/gameInfo/teamInfo/" + _teamCode).update(updates);
+                                        database.ref("games/" + _gameID + "/gameInfo/teamInfo/" + _teamCode + "/teamIsDead").remove();
+
+                                    }
+                                });
+
+                                //GameID Found, return to the game
+                                response.status(200).send("Relay Game");
+
+                            }).catch((error) => {
+                                console.log(error);
+                            });
+                        }
+
+                    }).catch((error) => {
+                        console.log(error);
+                    });
+
+                }).catch((error) => {
+                    console.log(error);
+                });
+
+            }).catch((error) => {
+                console.log(error);
+            });
+
+        }else{
+            //No teamCode is found. Return the player back to lobby
+            response.status(200).send("Lobby");
+        }
+
+    }).catch((error) => {
+        console.log(error);
+    });
+})
+
+// Todo: fix the DB dependencies
 route_game.get('/test', function(req, res){
     // db.select().table('game').orderBy("StartDate", "desc").then((rows) => {
     //     res.json({ code: 200, data: { items: rows, total: rows.length } })
@@ -839,138 +973,6 @@ route_game.get('/update_ingame_data', function(request, response){
         console.log(error);
     });
 
-})
-route_game.get('/rejoin', function(request, response){
-
-    let _uid = request.query.UID;
-    let _teamCode = "notfound";
-    let _gameID = "notfound";
-    let _skinID = "";
-    let _petID = "";
-    let _imageURL = "";
-    let user_index = -1;
-    let isInQueue = false;
-
-    //Check if the player exists
-    database.ref("users/" + _uid).once("value").then((userData) => {
-
-        //Check if user uid exists
-        if (userData.exists() == false) {
-            response.status(401).send("Your UID is not valid");
-        }
-
-        //Get the registered teamCode in player's data
-        userData.forEach((data) => {
-            if (data.key === "teamCode") {
-                _teamCode = data.val();
-            }
-
-            if (data.key === "skinID") {
-                _skinID = parseInt(data.val(), 10);
-            }
-
-            if (data.key === "petID") {
-                _petID = parseInt(data.val(), 10);
-            }
-
-            if (data.key === "Profile_Image_URL") {
-                _imageURL = data.val();
-            }
-        });
-
-        // Change user isOnline status and team isOnline status
-        database.ref("users/" + _uid).update({isOnline: true,});
-
-        //Check if teamCode exists
-        if(_teamCode !== "notfound" && _teamCode !== "placeholder"){
-            //Check if team with given teamCode exits
-            database.ref("teams/" + _teamCode).once("value").then((teamData) => {
-
-                //Check if teamcode exists
-                if(teamData.exists() == false) {
-                    response.status(200).send("Lobby");
-                }
-
-                //Check if gameID fields contains a game
-                teamData.forEach((data) => {
-                    if (data.key === "gameId") {
-                        _gameID = data.val();
-                    }
-                });
-
-                database.ref("teams/" + _teamCode + "/memberIDs").once("value").then((members) => {
-
-                    members.forEach((member) => {
-                        if (_uid === member.val()) {
-                            user_index = parseInt(member.key, 10);
-                        }
-                    });
-
-                    database.ref("teams/" + _teamCode + "/isOnlineList").update({
-                        [user_index]: true,
-                    });
-
-                    database.ref("games/" + _gameID + "/gameInfo/startGame").once("value").then((startgame) => {
-
-                        //Check if game is already in game or in queue (exists mean to be in game)
-                        if (startgame.exists() == false) {
-                            isInQueue = true;
-                        }
-
-                        if(_gameID == "notfound" || _gameID == "placeholder" || isInQueue){
-                            //No Game Found, return to the team lobby
-                            response.status(200).send("Team Lobby");
-                        }else{
-                            // before return to the game, assign runner to the player if team is dead
-                            database.ref("games/" + _gameID + "/gameInfo/teamInfo/" + _teamCode).once("value").then((teamInfos) => {
-
-                                teamInfos.forEach((teamInfo) => {
-
-                                    if (teamInfo.key === "teamIsDead") {
-
-                                        let updates = {
-                                            runner: _uid,
-                                            runnerSkinID: _skinID,
-                                            runnerPetID: _petID,
-                                            runnerImageURL: _imageURL,
-                                        };
-
-                                        console.log("rejoin from team is dead");
-
-                                        database.ref("games/" + _gameID + "/gameInfo/teamInfo/" + _teamCode).update(updates);
-                                        database.ref("games/" + _gameID + "/gameInfo/teamInfo/" + _teamCode + "/teamIsDead").remove();
-
-                                    }
-                                });
-
-                                //GameID Found, return to the game
-                                response.status(200).send("Relay Game");
-
-                            }).catch((error) => {
-                                console.log(error);
-                            });
-                        }
-
-                    }).catch((error) => {
-                        console.log(error);
-                    });
-
-                }).catch((error) => {
-                    console.log(error);
-                });
-
-            }).catch((error) => {
-                console.log(error);
-            });
-
-        }else{
-            //No teamCode is found. Return the player back to lobby
-            response.status(200).send("Lobby");
-        }
-
-    }).catch((error) => {
-        console.log(error);
-    });
 })
 route_game.get('/update_queue', function(request, response){
 

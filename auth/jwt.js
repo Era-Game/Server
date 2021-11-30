@@ -1,4 +1,4 @@
-const jwtHelper = require('../utils/jwtHelper')
+const jwtHelper = require('../utils/jwtHelpers')
 const passport = require('passport')
 const db = require("../db/connection");
 

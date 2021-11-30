@@ -1,4 +1,4 @@
-const jwtHelpers = require('../utils/jwtHelper');
+const jwtHelpers = require('../utils/jwtHelpers');
 
 const generateJWT = (user) => {
     console.log(user)
