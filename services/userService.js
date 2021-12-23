@@ -6,8 +6,10 @@ const create = function (req) {
         // hash the password
         authHelpers.bcryptPassword(req.body.password).then( function(hashedPwd){
             let dt = new Date(Date.now());
+            console.log(Date.now())
             let ts = dt.getFullYear() + "-" + dt.getMonth() + "-" + dt.getDate()+ " " +
                 dt.getHours() + ":" + dt.getMinutes() + ":" +dt.getSeconds()
+            console.log(ts)
 
             // save user into DB
             db('users')
