@@ -40,7 +40,7 @@ const MESSAGE_EVENT_HANDLERS = {
     // handle join team events
     j: async (socket, team_id, user_id) => {
         console.log("join")
-        teamService.join(team_id, user_id)
+        await teamService.join(team_id, user_id)
         // let [x, y] = config.world.spawns[random];
         // redis_client.xadd("player_actions:" + socket.gid, '*', "action", "j", "action_args", [socket.uid, x, y].join());
     },
@@ -69,7 +69,7 @@ const MESSAGE_EVENT_HANDLERS = {
 };
 
 websocket_server.on('connection', (ws, req) => {
-    load_game_id(req.url, ws);
+    load_team_id(req.url, ws);
 
     // Process incoming player websocket messages:
     ws.on('message', message => {
@@ -86,19 +86,19 @@ websocket_server.on('connection', (ws, req) => {
 
 
 
-function load_game_id(url, ws) {
+function load_team_id(url, ws) {
     // used to load game_id fro the url component
-    gid = url.split("/").slice(-1)[0];
-    if (!letterNumber.test(gid) || gid.length != 32) {
+    let tid = url.split("/").slice(-1)[0];
+    if (!letterNumber.test(tid) || tid.length != 32) {
         ws.close();
     }
-    ws.gid = gid;
+    ws.tid = tid;
 }
 
 function subscribe_player_actions(socket) {
     // Receive incoming messages from Redis:
     socket.subscription_client = redis.createClient(6379, 'redis');
-    socket.subscription_client.subscribe(socket.gid);
+    socket.subscription_client.subscribe(socket.tid);
     socket.subscription_client.on('message', (channel, message) => {
         socket.send(message);
     });

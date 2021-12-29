@@ -56,7 +56,7 @@ const join = function (team_id, user_id, skin_id) {
             })
             .then(function(id){
                 console.log("inserted team id:" + id)
-                resolve({"id": id, "leader_id": req.body.leader_id, "status": "created"});
+                resolve({"team_id": team_id, "user_id": user_id, "status": "joined"});
             })
             .catch(function (err){
                 reject(Error(err))
