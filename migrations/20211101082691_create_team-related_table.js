@@ -19,7 +19,7 @@ exports.up = function(knex) {
           table.timestamps();
       })
       .createTable('team_user_list', function(table) {
-          table.increments('id').primary();
+          table.increments('id');
           table
               .integer('team_id')
               .unsigned()
@@ -34,6 +34,10 @@ exports.up = function(knex) {
               .inTable('users')
               .onDelete('CASCADE')
               .index();
+
+          // composite key
+          table.primary(['team_id', 'user_id']);
+
           table.integer('skin_id')
               .unsigned().references('id')
               .inTable('skins')

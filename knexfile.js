@@ -2,10 +2,10 @@ module.exports = {
   client: 'mysql',
   version: '10.6.4',
   connection: {
-    host : process.env.DB_HOST,
+    host : '127.0.0.1',
     port : 3306,
-    user : 'admin',
-    password : process.env.DB_PASSWORD,
+    user : 'root',
+    password : 'eragame',
     database : 'era_game'
   }
 }
