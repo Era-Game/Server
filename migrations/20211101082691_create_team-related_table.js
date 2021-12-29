@@ -6,12 +6,12 @@ exports.up = function(knex) {
           table.integer('leader_id')
               .unsigned().references('id')
               .inTable('users')
-              .onDelete('SET NULL')
+              .onDelete('CASCADE')
               .index();
           table.integer('game_id')
               .unsigned().references('id')
               .inTable('games')
-              .onDelete('SET NULL')
+              .onDelete('CASCADE')
               .index();
           table.enum('status', ['created', 'matching', 'ready', 'playing','dismissed']).defaultTo('created');
           table.float('accuDistance');
@@ -19,7 +19,7 @@ exports.up = function(knex) {
           table.timestamps();
       })
       .createTable('team_user_list', function(table) {
-          table.increments('id').primary();
+          table.increments('id');
           table
               .integer('team_id')
               .unsigned()
@@ -34,10 +34,14 @@ exports.up = function(knex) {
               .inTable('users')
               .onDelete('CASCADE')
               .index();
+
+          // composite key
+          table.primary(['team_id', 'user_id']);
+
           table.integer('skin_id')
               .unsigned().references('id')
               .inTable('skins')
-              .onDelete('SET NULL')
+              .onDelete('CASCADE')
               .index();
           table.enum('status', ['joined', 'ready', 'left']).defaultTo('joined');
           table.float('currVelocity');
@@ -52,14 +56,22 @@ exports.up = function(knex) {
                   .integer('curr_player_id')
                   .unsigned().references('user_id')
                   .inTable('team_user_list')
-                  .onDelete('SET NULL')
+                  .onDelete('CASCADE')
                   .index();
           }
       )
 };
 
 exports.down = function(knex) {
-    return knex.schema
+    return knex.schema.alterTable("teams", (table) => {
+        table.dropForeign("leader_id");
+        table.dropForeign("game_id");
+        table.dropForeign("curr_player_id");
+    })
+        .alterTable("team_user_list", (table) => {
+            table.dropForeign("team_id");
+            table.dropForeign("user_id");
+        })
         .dropTable("teams")
         .dropTable("team_user_list")
 };

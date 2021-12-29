@@ -11,7 +11,7 @@ exports.up = function(knex) {
             table.integer('org_id')
                 .unsigned().references('id')
                 .inTable('organizations')
-                .onDelete('SET NULL')
+                .onDelete('CASCADE')
                 .index();
             table.string('name', 255).notNullable();
             table.timestamps();
@@ -19,24 +19,25 @@ exports.up = function(knex) {
         .createTable('skins', function (table){
             table.increments('id');
             table.string('name').notNullable();
-            !table.integer('price').notNullable();
+            table.integer('price').notNullable();
             table.timestamps();
         })
         .createTable('users', function (table) {
             table.increments('id');
-            table.integer('org_id')
+            table.integer('dept_id')
                 .unsigned().references('id')
-                .inTable('organizations')
-                .onDelete('SET NULL')
+                .inTable('departments')
+                .onDelete('CASCADE')
                 .index();
             table.integer('default_skin_id')
                 .unsigned().references('id')
                 .inTable('skins')
-                .onDelete('SET NULL')
+                .onDelete('CASCADE')
                 .index();
-            table.string('profileImgUrl', 255).notNullable();
-            table.string('name', 64).notNullable();
-            table.string('email', 255).notNullable();
+            table.string('profileImgUrl', 255);
+            table.string('name', 32);
+            table.string('username', 32).unique().notNullable();
+            table.string('email', 255).unique().notNullable();
             table.string('password', 255).notNullable();
             table.enum('status', ['activated', 'deactivated', 'blocked']).defaultTo('activated');
             table.timestamps();
@@ -44,7 +45,13 @@ exports.up = function(knex) {
 };
 
 exports.down = function(knex) {
-    return knex.schema
+    return knex.schema.alterTable("departments", (table) => {
+        table.dropForeign("org_id");
+    }).
+        alterTable("users", (table) => {
+            table.dropForeign("dept_id");
+            table.dropForeign("default_skin_id");
+        })
         .dropTable("organizations")
         .dropTable("departments")
         .dropTable("skins")
