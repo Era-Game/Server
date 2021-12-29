@@ -19,7 +19,7 @@ exports.up = function(knex) {
           table.timestamps();
       })
       .createTable('team_user_list', function(table) {
-          table.increments('id');
+          table.integer('id').unsigned().notNullable().unique()
           table
               .integer('team_id')
               .unsigned()
@@ -49,6 +49,12 @@ exports.up = function(knex) {
           table.float('accuDistance');
           table.timestamps();
       })
+      .alterTable(
+          'team_user_list',
+          (table) => {
+              table
+                  .increments('id', { primaryKey: false }).alter()
+          })
       .alterTable(
           'teams',
           (table) => {
