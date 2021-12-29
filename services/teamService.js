@@ -1,4 +1,5 @@
 const db = require("../db/connection");
+const {getCurrentTime} = require("../utils/common");
 
 const create = function (req) {
     return new Promise(function (resolve, reject) {
@@ -56,7 +57,28 @@ const join = function (team_id, user_id, skin_id) {
             })
             .then(function(id){
                 console.log("inserted team id:" + id)
-                resolve({"team_id": team_id, "user_id": user_id, "status": "joined"});
+                resolve();
+            })
+            .catch(function (err){
+                reject(Error(err))
+            })
+    })
+}
+
+const leave = function (team_id, user_id) {
+    return new Promise(function (resolve, reject) {
+        db('team_user_list')
+            .where({
+                team_id: team_id,
+                user_id: user_id
+            })
+            .update({
+                status: "left",
+                updated_at: getCurrentTime()
+            })
+            .then(function(id){
+                console.log("updated team_user")
+                resolve();
             })
             .catch(function (err){
                 reject(Error(err))
@@ -67,5 +89,6 @@ const join = function (team_id, user_id, skin_id) {
 module.exports = {
     create,
     findById,
-    join
+    join,
+    leave
 }

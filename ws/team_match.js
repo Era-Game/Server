@@ -1,70 +1,82 @@
 const WebSocket = require('ws');
-const uuid = require('uuid');
-const redis = require("redis");
-var fs = require('fs');
 
 const teamService = require('../services/teamService');
+const {joinTeamError, leaveTeamError} = require("../utils/sqlErrHelper");
 
+const { createClient } = require('redis');
+const redis_client = createClient();
+(async () => {
+    await redis_client.on('error', (err) => console.log('Redis Client Error', err));
+    await redis_client.connect();
+})();
 
 const WEBSOCKET_PORT = 8080;
 const letterNumber = /^[0-9a-zA-Z]+$/;
 
-// const redis_client = redis.createClient(6379, 'redis');
 const websocket_server = new WebSocket.Server({ port: WEBSOCKET_PORT });
 
+// eslint-disable-next-line no-undef
 illegal_event = () => { console.log("illegal event!") };
 
 const MESSAGE_EVENT_HANDLERS = {
-    // handle pose events
-    p: async (socket, x, y, o) => {
-        // redis_client.xadd("player_actions:" + socket.gid, '*', "action", "p", "action_args", [socket.uid, x, y, o].join());
-    },
-    // handle click events
-    c: async (socket, x, y, angle) => {
-        // redis_client.xadd("player_actions:" + socket.gid, '*', "action", "c", "action_args", [socket.uid, x, y, angle].join());
-    },
     // handle leave events
-    l: async (socket) => {
-        // redis_client.xadd("player_actions:" + socket.gid, '*', "action", "l", "action_args", [socket.uid].join());
+    l: async (socket, user_id) => {
+        console.log("[ws:l] Start of Leave event")
+
+        // cache
+        try{
+            await redis_client.sendCommand(["RG.TRIGGER", "leave_team", user_id, socket.tid])
+        } catch (e) {
+            console.log(e)
+        }
+
+        // write back
+        try {
+            await teamService.leave(socket.tid, user_id)
+        } catch (err) {
+            console.error(leaveTeamError(err))
+        }
+        console.log("[ws:l] End of Leave event")
     },
-    // handle hit events
-    hit: async (socket, enemy_uid) => {
-        // redis_client.xadd("player_actions:" + socket.gid, '*', "action", "hit", "action_args", [socket.uid, enemy_uid].join());
-    },
-    // handle respawn events
-    r: async (socket) => {
-        // let random = Math.floor(Math.random() * config.world.spawns.length);
-        // let [x, y] = config.world.spawns[random];
-        // redis_client.xadd("player_actions:" + socket.gid, '*', "action", "r", "action_args", [socket.uid, x, y].join());
-    },
-    // handle join team events
-    j: async (socket, team_id, user_id) => {
-        console.log("join")
-        await teamService.join(team_id, user_id)
-        // let [x, y] = config.world.spawns[random];
-        // redis_client.xadd("player_actions:" + socket.gid, '*', "action", "j", "action_args", [socket.uid, x, y].join());
-    },
-    // handle uid request/response events
-    uid: async (socket, uid, secret = "") => {
-        // redis_client.hgetall("GAME:" + socket.gid, (err, game) => {
-        //     if (game != null && game['USER:' + uid] != undefined) {
-        //         subscribe_player_actions(socket);
-        //         socket.uid = uid;
-        //         socket.send("uid;" + true);
-        //     } else {
-        //         redis_client.send_command("RG.TRIGGER", ["join_game", uid, socket.gid, secret], (err, data) => {
-        //             if (data != undefined && data != null) {
-        //                 subscribe_player_actions(socket);
-        //                 socket.uid = uid;
-        //                 socket.send("uid;" + true);
-        //             } else {
-        //                 socket.send("uid;" + false);
-        //                 socket.close();
-        //             }
-        //         })
-        //
-        //     }
-        // })
+    // handle user join events
+    j: async (socket, uid, secret = "") => {
+        console.log("[ws:j] Start of Join Event")
+
+        // set user id in client socket
+        socket.uid = uid;
+        const team = await redis_client.HGETALL(socket.tid)
+
+        // already in this team
+        if (team != null && team['USER:' + uid] !== undefined) {
+            console.log("already in this team!")
+            await subscribe_player_actions(socket);
+            socket.uid = uid;
+            socket.send("uid;" + true);
+        } else { // new to team
+            console.log("new to this team!")
+            try{
+                const data = await redis_client.sendCommand(["RG.TRIGGER", "join_team", uid, socket.tid, secret])
+
+                if (data !== undefined && data != null) {
+                    await subscribe_player_actions(socket);
+                    socket.uid = uid;
+                    socket.send("join;" + true);
+                } else {
+                    socket.send("join;" + false);
+                    socket.close();
+                }
+            } catch (e) {
+                console.log(e)
+            }
+        }
+
+        // write back DB
+        try {
+            await teamService.join(socket.tid, socket.uid)
+        } catch (err) {
+            console.error(joinTeamError(err))
+        }
+        console.log("[ws:j] End of Join event")
     }
 };
 
@@ -73,7 +85,6 @@ websocket_server.on('connection', (ws, req) => {
 
     // Process incoming player websocket messages:
     ws.on('message', message => {
-        console.log("msg:"+message.toString())
         let [action, payload] = message.toString().split(";");
         try {
             func = (MESSAGE_EVENT_HANDLERS[action] || illegal_event)(ws, ...payload.split(','));
@@ -89,23 +100,27 @@ websocket_server.on('connection', (ws, req) => {
 function load_team_id(url, ws) {
     // used to load game_id fro the url component
     let tid = url.split("/").slice(-1)[0];
-    if (!letterNumber.test(tid) || tid.length != 32) {
+    if (!letterNumber.test(tid) || tid.length != 6) {
         ws.close();
     }
     ws.tid = tid;
 }
 
-function subscribe_player_actions(socket) {
+async function subscribe_player_actions(socket) {
+    const channel_id = socket.tid
+
     // Receive incoming messages from Redis:
-    socket.subscription_client = redis.createClient(6379, 'redis');
-    socket.subscription_client.subscribe(socket.tid);
-    socket.subscription_client.on('message', (channel, message) => {
+    socket.redis_sub_client = redis_client.duplicate();
+    await socket.redis_sub_client.connect();
+
+    await socket.redis_sub_client.subscribe(channel_id, (message) => {
+        console.log("channel on message"); // 'message'
         socket.send(message);
     });
 
     // Handle on close event
     socket.on('close', () => {
-        MESSAGE_EVENT_HANDLERS.l(socket);
-        socket.subscription_client.quit();
+        MESSAGE_EVENT_HANDLERS.l(socket, socket.uid);
+        socket.redis_sub_client.unsubscribe();
     });
 }
