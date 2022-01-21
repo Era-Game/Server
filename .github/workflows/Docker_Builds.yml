@@ -2,7 +2,7 @@ name: Docker_Builds
 
 on:
   push:
-    branches: [ main,flag ]
+    branches: [ main,deployment ]
   
   workflow_dispatch:
 
