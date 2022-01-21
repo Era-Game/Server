@@ -1,0 +1,19 @@
+name: Docker_Builds 
+
+on:
+  push:
+    branches: [ main,flag ]
+  
+  workflow_dispatch:
+
+jobs:
+  build-DockerImage:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build the Docker image
+    - run: |
+          docker build .
+    - name: FINISH image Build
+        run: |
+          echo FINISH image Build
