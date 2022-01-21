@@ -12,8 +12,5 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Build the Docker image
-    - run: |
-          docker build .
-    - name: FINISH image Build
-        run: |
-          echo FINISH image Build
+      run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
+
