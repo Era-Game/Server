@@ -7,8 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  job1:
-    build-DockerImage:
+  build-DockerImage:
       runs-on: ubuntu-latest
       steps:
       - uses: actions/checkout@v2
