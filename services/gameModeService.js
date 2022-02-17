@@ -24,6 +24,7 @@ const findByName = function (name) {
                 if (row !== undefined){
                     console.log("find by game_mode name:" + row.name)
                     resolve(row);
+                
                 } else {
                     reject(Error("The game isn't existed."))
                 }

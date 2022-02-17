@@ -63,7 +63,7 @@ class FindTeamFunctionBuilder(BaseFunctionBuilder):
                 "SORTBY", "playercount", "DESC",  # order fullest teams first
                 "LIMIT", "0", "1")  # offset 0 take 1
 
-            # "[1, 'GAME:f627c6d1cbd74be2a9569c3f7259dfa1', ['playercount', '0', 'owner', 'USER:123', 'secret', 'secret123', 'private', '1']]"
+            # "[1, 'TEAM:f627c6d1cbd74be2a9569c3f7259dfa1', ['playercount', '0', 'owner', 'USER:123', 'secret', 'secret123', 'private', '1']]"
 
         def find_team(user_id):
             team = query()
@@ -71,7 +71,7 @@ class FindTeamFunctionBuilder(BaseFunctionBuilder):
                 return team[1].split(":")[1]
 
             # CREATE A NEW GAME IF THERE ARE NO GAMES
-            team = execute("RG.TRIGGER", "create_new_game", f"USER:{user_id}")
+            team = execute("RG.TRIGGER", "create_new_team", f"USER:{user_id}")
 
             if team:
                 return team[0]
@@ -79,7 +79,7 @@ class FindTeamFunctionBuilder(BaseFunctionBuilder):
         (
             GB('CommandReader')
                 .map(lambda x: find_team(*x[1:]))
-                .register(trigger=self.command_name)
+                 .register(trigger=self.command_name)
         )
 
 
@@ -97,24 +97,24 @@ class JoinTeamFunctionBuilder(BaseFunctionBuilder):
             Returns:
                 redis key [TEAM:team_id]
             Trigger example:
-                RG.TRIGGER join_team user1 game1
-                RG.TRIGGER join_team user1 game1 secret123
+                RG.TRIGGER join_team user1 team1
+                RG.TRIGGER join_team user1 team1 secret123
 
         """
 
-        def assign_to_game(user_id, team_id):
-            # add user reference to the game
+        def assign_to_team(user_id, team_id):
+            # add user reference to the team
             execute("HSET", f"TEAM:{team_id}", f"USER:{user_id}", int(datetime.now().timestamp()))
             execute("HINCRBY", f"TEAM:{team_id}", "playercount", 1)
-
-        def is_authorized(user_id, game_id, secret):
-            return execute("RG.TRIGGER", "user_authorized", user_id, game_id, secret)
+        
+        def is_authorized(user_id, team_id, secret):
+            return execute("RG.TRIGGER", "user_authorized", user_id, team_id, secret)
 
         def subcall(user_id, team_id, secret=""):
             if not is_authorized(user_id, team_id, secret):
                 return False
 
-            assign_to_game(user_id, team_id)
+            assign_to_team(user_id, team_id)
             execute('PUBLISH', team_id, f"j;{user_id}")
             return team_id
 
@@ -140,13 +140,13 @@ class LeaveTeamFunctionBuilder(BaseFunctionBuilder):
             Returns:
                 None
             Trigger example:
-                RG.TRIGGER leave_team user1 game1
+                RG.TRIGGER leave_team user1 team1
         """
 
-        def subcall(user_id, game_id):
-            execute("HDEL", f"TEAM:{game_id}", f"USER:{user_id}")
-            execute("HINCRBY", f"TEAM:{game_id}", "playercount", -1)
-            execute("PUBLISH", game_id, f"l;{user_id}")
+        def subcall(user_id, team_id):
+            execute("HDEL", f"TEAM:{team_id}", f"USER:{user_id}")
+            execute("HINCRBY", f"TEAM:{team_id}", "playercount", -1)
+            execute("PUBLISH", team_id, f"l;{user_id}")
 
         (
             GB('CommandReader')
@@ -163,17 +163,17 @@ class UserAuthorizedFunctionBuilder(BaseFunctionBuilder):
         """
             Determines if user can join the room
             Arguments:
-                user, game
+                user, team
             Returns:
                 Boolean
             Trigger example:
-                RG.TRIGGER user_authorized user1 game1
+                RG.TRIGGER user_authorized user1 team1
         """
 
-        def subcall(user_id, game_id, secret):
-            return execute("HGET", f"GAME:{game_id}", "secret") == secret or execute("HGET", f"GAME:{game_id}",
+        def subcall(user_id, team_id, secret):
+            return execute("HGET", f"TEAM:{team_id}", "secret") == secret or execute("HGET", f"TEAM:{team_id}",
                                                                                      f"USER:{user_id}") != 'None' or execute(
-                "HGET", f"GAME:{game_id}", "owner") == f'USER:{user_id}'
+                "HGET", f"TEAM:{team_id}", "owner") == f'USER:{user_id}'
 
         (
             GB('CommandReader')

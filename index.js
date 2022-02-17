@@ -28,6 +28,7 @@ local_passport.init()
 jwt_passport.init()
 
 const team_ws = require('./ws/team_match')
+const game_ws = require('./ws/game_match')
 
 app.get('/', function (req, res) {
   res.send('Era Game Server');

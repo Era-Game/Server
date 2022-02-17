@@ -40,8 +40,54 @@ const findById = function (id) {
             })
     })
 }
+const join = function (game_id, team_id, skin_id) {
+    let dt = new Date(Date.now());
+    let ts = dt.getFullYear() + "-" + dt.getMonth() + "-" + dt.getDate()+ " " +
+        dt.getHours() + ":" + dt.getMinutes() + ":" +dt.getSeconds()
+
+    return new Promise(function (resolve, reject) {
+        db('game_team_list')
+            .insert({
+                game_id: game_id,
+                team_id: team_id,
+                skin_id: skin_id,
+                status: "joined",
+                created_at: ts,
+                updated_at: ts
+            })
+            .then(function(id){
+                console.log("inserted game id:" + id)
+                resolve();
+            })
+            .catch(function (err){
+                reject(Error(err))
+            })
+    })
+}
+const leave = function (game_id, team_id) {
+    return new Promise(function (resolve, reject) {
+        db('game_team_list')
+            .where({
+                game_id: game_id,
+                team_id: team_id
+            })
+            .update({
+                status: "left",
+                updated_at: getCurrentTime()
+            })
+            .then(function(id){
+                console.log("updated team_in_game")
+                resolve();
+            })
+            .catch(function (err){
+                reject(Error(err))
+            })
+    })
+}
 
 module.exports = {
     create,
     findById,
+    join,
+    leave
 }
