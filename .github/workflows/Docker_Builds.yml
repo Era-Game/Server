@@ -12,11 +12,5 @@ jobs:
       steps:
       - uses: actions/checkout@v2
       - name: Build the Docker image
-<<<<<<< HEAD
-        run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
-=======
-        run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
 
-          
-
->>>>>>> 7988105f12cb42011f55a42b27357bf3553656c2
+        run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)          
